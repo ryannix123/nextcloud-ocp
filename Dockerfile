@@ -21,7 +21,7 @@ RUN dnf install -y epel-release && \
     dnf module enable php:remi-8.3 -y && \
     dnf install -y php php-cli php-common php-pdo php-pgsql php-gd php-curl \
                    php-intl php-json php-mbstring php-xml php-zip php-bcmath \
-                   php-gmp php-imagick wget tar bzip2 unzip && \
+                   php-gmp php-imagick wget tar bzip2 unzip httpd && \
     dnf clean all
 
 # Download Nextcloud using wget
@@ -32,11 +32,27 @@ RUN mkdir -p ${NEXTCLOUD_DIR} && \
     tar -xjf /tmp/nextcloud.tar.bz2 -C ${NEXTCLOUD_DIR} --strip-components=1 && \
     rm -rf /tmp/nextcloud.tar.bz2
 
-# Set permissions
-RUN chown -R 1001:0 ${NEXTCLOUD_DIR} && chmod -R 770 ${NEXTCLOUD_DIR}
+# Set proper permissions for Apache
+RUN chown -R apache:apache ${NEXTCLOUD_DIR} && chmod -R 770 ${NEXTCLOUD_DIR}
 
-# Expose Nextcloud on port 8080 (not less than 1024)
+# Use a heredoc to create the Apache VirtualHost configuration file
+RUN cat <<EOF > /etc/httpd/conf.d/nextcloud.conf
+<VirtualHost *:8080>
+    DocumentRoot ${NEXTCLOUD_DIR}
+    <Directory ${NEXTCLOUD_DIR}>
+        AllowOverride All
+        Require all granted
+    </Directory>
+    ErrorLog /var/log/httpd/nextcloud_error.log
+    CustomLog /var/log/httpd/nextcloud_access.log combined
+</VirtualHost>
+EOF
+
+# Ensure Apache starts correctly
+RUN mkdir -p /run/httpd
+
+# Expose Nextcloud on port 8080
 EXPOSE 8080
 
-# Start PHP's built-in server
-CMD ["php", "-S", "0.0.0.0:8080", "-t", "/var/www/html"]
+# Start Apache in foreground
+CMD ["httpd", "-D", "FOREGROUND"]
