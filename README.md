@@ -5,7 +5,7 @@ This guide provides step-by-step instructions to deploy Nextcloud on an OpenShif
 ## **📌 Prerequisites**
 Before you begin, ensure you have:
 - Access to an **OpenShift** cluster (`oc` or `kubectl` CLI installed)
-- A **Quay.io** account with a **Nextcloud container image** (`quay.io/<your_quay_user>/nextcloud:latest`)
+- A **Quay.io** account with a **Nextcloud container image** (`quay.io/<your_quay_user>/nextcloud:latest`) You can use (`quay.io/ryan_nix/nextcloud:latest`) as an example or build your own with the Dockerfile provided in this repo.
 - A PostgreSQL database for Nextcloud
 
 ---
