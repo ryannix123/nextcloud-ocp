@@ -13,33 +13,38 @@ spec:
         app: nextcloud
     spec:
       containers:
-        - name: nextcloud
-          image: quay.io/ryan_nix/nextcloud:latest  # Using your Quay repo
-          ports:
-            - containerPort: 8080
-          env:
-            - name: POSTGRES_HOST
-              value: nextcloud-db
-            - name: POSTGRES_DB
-              value: nextcloud
-            - name: POSTGRES_USER
-              valueFrom:
-                secretKeyRef:
-                  name: nextcloud-db-secret
-                  key: db-user
-            - name: POSTGRES_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: nextcloud-db-secret
-                  key: db-password
-          volumeMounts:
-            - mountPath: "/var/www/html"
-              name: nextcloud-data
+      - name: nextcloud
+        image: quay.io/ryan_nix/nextcloud:latest # Using your Quay repo
+        ports:
+        - containerPort: 8080
+        env:
+        - name: POSTGRES_HOST
+          value: nextcloud-db
+        - name: POSTGRES_DB
+          value: nextcloud
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: nextcloud-db-secret
+              key: db-user
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: nextcloud-db-secret
+              key: db-password
+        volumeMounts:
+        - mountPath: "/var/www/data"
+          name: nextcloud-data
+        - mountPath: "/var/www/html/config/config.php"
+          subPath: config.php
+          name: nextcloud-config
       volumes:
-        - name: nextcloud-data
-          persistentVolumeClaim:
-            claimName: nextcloud-pvc
-
+      - name: nextcloud-data
+        persistentVolumeClaim:
+          claimName: nextcloud-pvc
+      - name: nextcloud-config
+        configMap:
+          name: nextcloud-config
 ---
 apiVersion: v1
 kind: Service
@@ -47,12 +52,11 @@ metadata:
   name: nextcloud
 spec:
   ports:
-    - port: 8080
-      targetPort: 8080
+  - port: 8080
+    targetPort: 8080
   selector:
     app: nextcloud
   type: ClusterIP
-
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -69,31 +73,30 @@ spec:
         app: nextcloud-db
     spec:
       containers:
-        - name: postgres
-          image: quay.io/centos/postgresql-15
-          ports:
-            - containerPort: 5432
-          env:
-            - name: POSTGRES_DB
-              value: nextcloud
-            - name: POSTGRES_USER
-              valueFrom:
-                secretKeyRef:
-                  name: nextcloud-db-secret
-                  key: db-user
-            - name: POSTGRES_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: nextcloud-db-secret
-                  key: db-password
-          volumeMounts:
-            - mountPath: "/var/lib/pgsql/data"
-              name: postgres-data
+      - name: postgres
+        image: quay.io/centos/postgresql-15
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_DB
+          value: nextcloud
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: nextcloud-db-secret
+              key: db-user
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: nextcloud-db-secret
+              key: db-password
+        volumeMounts:
+        - mountPath: "/var/lib/pgsql/data"
+          name: postgres-data
       volumes:
-        - name: postgres-data
-          persistentVolumeClaim:
-            claimName: postgres-pvc
-
+      - name: postgres-data
+        persistentVolumeClaim:
+          claimName: postgres-pvc
 ---
 apiVersion: v1
 kind: Service
@@ -101,12 +104,11 @@ metadata:
   name: nextcloud-db
 spec:
   ports:
-    - port: 5432
-      targetPort: 5432
+  - port: 5432
+    targetPort: 5432
   selector:
     app: nextcloud-db
   type: ClusterIP
-
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -114,11 +116,10 @@ metadata:
   name: nextcloud-pvc
 spec:
   accessModes:
-    - ReadWriteOnce
+  - ReadWriteOnce
   resources:
     requests:
       storage: 10Gi
-
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -126,11 +127,10 @@ metadata:
   name: postgres-pvc
 spec:
   accessModes:
-    - ReadWriteOnce
+  - ReadWriteOnce
   resources:
     requests:
       storage: 10Gi
-
 ---
 apiVersion: v1
 kind: Secret
@@ -140,3 +140,26 @@ type: Opaque
 stringData:
   db-user: "nextcloud"
   db-password: "<your-password-here>"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nextcloud-config
+data:
+  config.php: |
+    <?php
+    $CONFIG = array (
+      'datadirectory' => '/var/www/data',
+      'dbtype' => 'pgsql',
+      'dbname' => 'nextcloud',
+      'dbhost' => 'nextcloud-db',
+      'dbuser' => getenv('POSTGRES_USER'),
+      'dbpassword' => getenv('POSTGRES_PASSWORD'),
+      'trusted_domains' => 
+      array (
+        0 => 'nextcloud.example.com',
+      ),
+      'overwrite.cli.url' => 'http://nextcloud.example.com',
+      'check_data_directory_permissions' => false,
+      'installed' => false,
+    );
