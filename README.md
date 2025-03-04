@@ -40,6 +40,7 @@ podman push quay.io/<your_quay_user>/nextcloud:latest
 - Restart Nextcloud to apply all changes:
 `kubectl rollout restart deployment nextcloud`
 
+### **📝 Required Changes**
 - Check that the Nextcloud and PostgreSQL pods are running:
 `kubectl get pods`
 |----------|------------|----------|
