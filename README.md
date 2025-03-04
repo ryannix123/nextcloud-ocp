@@ -43,9 +43,9 @@ podman push quay.io/<your_quay_user>/nextcloud:latest
 - Check that the Nextcloud and PostgreSQL pods are running:
 `kubectl get pods`
 
-NAME                            READY   STATUS    RESTARTS   AGE
-nextcloud-xxxx-yyyy             1/1     Running   0          5m
-nextcloud-db-xxxx-yyyy          1/1     Running   0          5m
+| NAME                            | READY |  | STATUS  |    | RESTARTS  |  AGE |
+| nextcloud-xxxx-yyyy             | 1/1   |  | Running |   | 0         |  5m  |
+| nextcloud-db-xxxx-yyyy          | 1/1   |  | Running |   | 0         |  5m  |
 
 - For security, move the Nextcloud /data/ directory to persistent storage. Modify config.php inside the running Nextcloud pod:
 
